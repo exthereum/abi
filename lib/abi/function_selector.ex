@@ -196,9 +196,7 @@ defmodule ABI.FunctionSelector do
   defp get_type({:ufixed, element_count, precision}), do: "ufixed#{element_count}x#{precision}"
   defp get_type({:bytes, size}), do: "bytes#{size}"
   defp get_type(:function), do: "function"
-
   defp get_type({:array, type, element_count}), do: "#{get_type(type)}[#{element_count}]"
-
   defp get_type(:bytes), do: "bytes"
   defp get_type(:string), do: "string"
   defp get_type({:array, type}), do: "#{get_type(type)}[]"

@@ -72,6 +72,17 @@ defmodule ABI.TypeEncoder do
       ...> |> Base.encode16(case: :lower)
       "3d0ec53300000000000000000000000000000000000000000000000000000000000000110000000000000000000000000000000000000000000000000000000000000001"
 
+      iex> [<<1>>]
+      ...> |> ABI.TypeEncoder.encode(
+      ...>      %ABI.FunctionSelector{
+      ...>        function: "foo",
+      ...>        types: [
+      ...>          :bytes
+      ...>        ]
+      ...>      }
+      ...>    )
+      ...> |> Base.encode16(case: :lower)
+      "30c8d1da000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000010100000000000000000000000000000000000000000000000000000000000000"
       iex> [[17, 1], true]
       ...> |> ABI.TypeEncoder.encode(
       ...>      %ABI.FunctionSelector{
@@ -96,10 +107,15 @@ defmodule ABI.TypeEncoder do
       ...>    )
       ...> |> Base.encode16(case: :lower)
       "000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000110000000000000000000000000000000000000000000000000000000000000001"
+
   """
+  @spec encode(list(), ABI.FunctionSelector.t) :: binary()
+  def encode(data, %ABI.FunctionSelector{function: nil} = function_selector) do
+    encode_raw(data, function_selector.types)
+  end
   def encode(data, function_selector) do
     encode_method_id(function_selector) <>
-    encode_raw(data, function_selector.types)
+    encode_head_and_data(data, function_selector.types)
   end
 
   @doc """
@@ -116,6 +132,26 @@ defmodule ABI.TypeEncoder do
   """
   def encode_raw(data, types) do
     do_encode(types, data, [])
+  end
+
+  defp encode_head_and_data(data, types) do
+    body_start = Enum.count(types) * 32
+
+    {head, body, [], _} =
+      Enum.reduce(
+      types,
+      {<<>>, <<>>, data, body_start},
+      fn type, {head, body, data, body_position} ->
+        {encoded, rest} = encode_type(type, data)
+        if ABI.FunctionSelector.is_dynamic?(type) do
+          # If we're a dynamic type, just add encoded length to the head and encoded value to the body
+          {head <> encode_uint(body_position, 256), body <> encoded, rest, body_position + byte_size(encoded)}
+        else
+          # If we're a static type, simply add encoded value to the head
+          {head <> encoded, body, rest, body_position}
+        end
+      end)
+    head <> body
   end
 
   @spec encode_method_id(%ABI.FunctionSelector{}) :: binary()
@@ -177,23 +213,8 @@ defmodule ABI.TypeEncoder do
   end
 
   defp encode_type({:tuple, types}, [data|rest]) do
-    # all head items are 32 bytes in length and there will be exactly
-    # `count(types)` of them, so the tail starts at `32 * count(types)`.
-    tail_start = ( types |> Enum.count ) * 32
-
-    {head, tail, [], _} = Enum.reduce(types, {<<>>, <<>>, data |> Tuple.to_list, tail_start}, fn type, {head, tail, data, tail_position} ->
-      {el, rest} = encode_type(type, data)
-
-      if ABI.FunctionSelector.is_dynamic?(type) do
-        # If we're a dynamic type, just encoded the length to head and the element to body
-        {head <> encode_uint(tail_position, 256), tail <> el, rest, tail_position + byte_size(el)}
-      else
-        # If we're a static type, simply encode the el to the head
-        {head <> el, tail, rest, tail_position}
-      end
-    end)
-
-    {head <> tail, rest}
+    encoded = encode_head_and_data(Tuple.to_list(data), types)
+    {encoded, rest}
   end
 
   defp encode_type({:array, type, element_count}, [data | rest]) do
@@ -222,7 +243,7 @@ defmodule ABI.TypeEncoder do
   # Note, we'll accept a binary or an integer here, so long as the
   # binary is not longer than our allowed data size
   defp encode_uint(data, size_in_bits) when rem(size_in_bits, 8) == 0 do
-    size_in_bytes = ( size_in_bits / 8 ) |> round
+    size_in_bytes = (size_in_bits / 8) |> round
     bin = maybe_encode_unsigned(data)
 
     if byte_size(bin) > size_in_bytes, do: raise "Data overflow encoding uint, data `#{data}` cannot fit in #{size_in_bytes * 8} bits"
@@ -233,7 +254,7 @@ defmodule ABI.TypeEncoder do
   defp pad(bin, size_in_bytes, direction) do
     # TODO: Create `left_pad` repo, err, add to `ExthCrypto.Math`
     total_size = size_in_bytes + ExthCrypto.Math.mod(32 - size_in_bytes, 32)
-    padding_size_bits = ( total_size - byte_size(bin) ) * 8
+    padding_size_bits = (total_size - byte_size(bin)) * 8
     padding = <<0::size(padding_size_bits)>>
 
     case direction do
