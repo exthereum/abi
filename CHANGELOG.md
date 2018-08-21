@@ -1,3 +1,5 @@
+# 0.1.13
+* Fix 0-length `type[]` encoding
 # 0.1.12
 * Fix `string` decoding to truncate on encountering NUL
 * Fix some edge-cases in `tuple` encoding/decoding

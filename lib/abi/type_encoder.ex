@@ -197,7 +197,11 @@ defmodule ABI.TypeEncoder do
   end
 
   defp encode_type({:array, type, element_count}, [data | rest]) do
-    repeated_type = Enum.map(1..element_count, fn _ -> type end)
+    repeated_type = if element_count == 0 do
+      []
+    else
+       Enum.map(1..element_count, fn _ -> type end)
+    end
 
     encode_type({:tuple, repeated_type}, [data |> List.to_tuple | rest])
   end
