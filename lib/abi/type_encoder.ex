@@ -108,6 +108,19 @@ defmodule ABI.TypeEncoder do
       ...> |> Base.encode16(case: :lower)
       "000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000110000000000000000000000000000000000000000000000000000000000000001"
 
+      iex> [[]]
+      ...> |> ABI.TypeEncoder.encode(
+      ...>      %ABI.FunctionSelector{
+      ...>        function: nil,
+      ...>        types: [
+      ...>          {:array, {:uint, 32}}
+      ...>        ]
+      ...>      }
+      ...>    )
+      ...> |> Base.encode16(case: :lower)
+      "0000000000000000000000000000000000000000000000000000000000000000"
+
+
   """
   @spec encode(list(), ABI.FunctionSelector.t) :: binary()
   def encode(data, %ABI.FunctionSelector{function: nil} = function_selector) do
@@ -217,9 +230,12 @@ defmodule ABI.TypeEncoder do
     {encoded, rest}
   end
 
+  defp encode_type({:array, _type, 0}, [data | rest]) do
+    encode_type({:tuple, []}, [data |> List.to_tuple | rest])
+  end
+
   defp encode_type({:array, type, element_count}, [data | rest]) do
     repeated_type = Enum.map(1..element_count, fn _ -> type end)
-
     encode_type({:tuple, repeated_type}, [data |> List.to_tuple | rest])
   end
 
