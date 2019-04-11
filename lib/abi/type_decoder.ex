@@ -252,8 +252,8 @@ defmodule ABI.TypeDecoder do
 
   @spec decode_uint(binary(), integer()) :: {integer(), binary()}
   defp decode_uint(data, size_in_bits) do
-    # TODO: Create `left_pad` repo, err, add to `ExthCrypto.Math`
-    total_bit_size = size_in_bits + ExthCrypto.Math.mod(256 - size_in_bits, 256)
+    # TODO: Create `left_pad` repo, err, add to `ABI.Math`
+    total_bit_size = size_in_bits + ABI.Math.mod(256 - size_in_bits, 256)
 
     <<value::integer-size(total_bit_size), rest::binary>> = data
 
@@ -262,9 +262,8 @@ defmodule ABI.TypeDecoder do
 
   @spec decode_bytes(binary(), integer(), atom()) :: {binary(), binary()}
   def decode_bytes(data, size_in_bytes, padding_direction) do
-    # TODO: Create `unright_pad` repo, err, add to `ExthCrypto.Math`
-    total_size_in_bytes =
-      size_in_bytes + ExthCrypto.Math.mod(32 - ExthCrypto.Math.mod(size_in_bytes, 32), 32)
+    # TODO: Create `unright_pad` repo, err, add to `ABI.Math`
+    total_size_in_bytes = size_in_bytes + ABI.Math.mod(32 - ABI.Math.mod(size_in_bytes, 32), 32)
 
     padding_size_in_bytes = total_size_in_bytes - size_in_bytes
 

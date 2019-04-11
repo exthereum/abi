@@ -125,7 +125,7 @@ defmodule ABI.TypeEncoder do
     kec =
       function_selector
       |> ABI.FunctionSelector.encode()
-      |> ExthCrypto.Hash.Keccak.kec()
+      |> ABI.Math.kec()
 
     # Take first four bytes
     <<init::binary-size(4), _rest::binary>> = kec
@@ -245,9 +245,8 @@ defmodule ABI.TypeEncoder do
   end
 
   defp pad(bin, size_in_bytes, direction) do
-    # TODO: Create `left_pad` repo, err, add to `ExthCrypto.Math`
-    total_size =
-      size_in_bytes + ExthCrypto.Math.mod(32 - ExthCrypto.Math.mod(size_in_bytes, 32), 32)
+    # TODO: Create `left_pad` repo, err, add to `ABI.Math`
+    total_size = size_in_bytes + ABI.Math.mod(32 - ABI.Math.mod(size_in_bytes, 32), 32)
 
     padding_size_bits = (total_size - byte_size(bin)) * 8
     padding = <<0::size(padding_size_bits)>>
