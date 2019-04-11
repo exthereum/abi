@@ -4,8 +4,8 @@ defmodule ABI.Mixfile do
   def project do
     [
       app: :abi,
-      version: "0.1.12",
-      elixir: "~> 1.4",
+      version: "0.1.13",
+      elixir: "~> 1.7",
       description: "Ethereum's ABI Interface",
       package: [
         maintainers: ["Geoffrey Hayes", "Mason Fischer"],
@@ -28,11 +28,11 @@ defmodule ABI.Mixfile do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:credo, "~>  0.9.1", only: [:dev, :test], runtime: false},
-      {:ex_doc, "~> 0.14", only: :dev, runtime: false},
-      {:dialyxir, "~> 1.0.0-rc.3", only: [:dev], runtime: false},
-      {:poison, "~> 3.1", only: [:dev, :test]},
-      {:exth_crypto, "~> 0.1.6"}
+      {:credo, "~> 1.0.0-rc1", only: [:dev, :test], runtime: false},
+      {:ex_doc, "~> 0.19", only: :dev, runtime: false},
+      {:dialyxir, "~> 1.0.0-rc.4", only: [:dev, :test], runtime: false},
+      {:jason, "~>  1.1"},
+      {:keccakf1600, "~> 2.0.0", hex: :keccakf1600_orig}
     ]
   end
 end
