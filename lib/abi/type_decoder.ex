@@ -168,6 +168,11 @@ defmodule ABI.TypeDecoder do
     decode_uint(data, size_in_bits)
   end
 
+  @spec decode_type(ABI.FunctionSelector.type(), binary()) :: {any(), binary()}
+  defp decode_type({:int, size_in_bits}, data) do
+    decode_int(data, size_in_bits)
+  end
+
   defp decode_type(:address, data), do: decode_bytes(data, 20, :left)
 
   defp decode_type(:bool, data) do
@@ -256,6 +261,14 @@ defmodule ABI.TypeDecoder do
     total_bit_size = size_in_bits + ABI.Math.mod(256 - size_in_bits, 256)
 
     <<value::integer-size(total_bit_size), rest::binary>> = data
+
+    {value, rest}
+  end
+
+  @spec decode_int(binary(), integer()) :: {integer(), binary()}
+  defp decode_int(data, size_in_bits) do
+    total_bit_size = size_in_bits + ExthCrypto.Math.mod(256 - size_in_bits, 256)
+    <<value::integer-signed-big-size(total_bit_size), rest::binary>> = data
 
     {value, rest}
   end
