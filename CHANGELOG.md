@@ -1,5 +1,7 @@
-# 0.1.13
+# 0.1.14
 * Fix 0-length `type[]` encoding
+# 0.1.13
+* Drop dependency on exth crypto and move in functionality
 # 0.1.12
 * Fix `string` decoding to truncate on encountering NUL
 * Fix some edge-cases in `tuple` encoding/decoding
