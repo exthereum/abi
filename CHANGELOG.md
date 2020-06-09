@@ -1,3 +1,5 @@
+# 0.1.14
+* Fix 0-length `type[]` encoding
 # 0.1.13
 * Drop dependency on exth crypto and move in functionality
 # 0.1.12
