@@ -38,6 +38,15 @@ defmodule ABI.FunctionSelector do
         ]
       }
 
+      iex> ABI.FunctionSelector.decode("(uint256,bool)")
+      %ABI.FunctionSelector{
+        function: nil,
+        types: [
+          {:uint, 256},
+          :bool
+        ]
+      }
+
       iex> ABI.FunctionSelector.decode("growl(uint,address,string[])")
       %ABI.FunctionSelector{
         function: "growl",

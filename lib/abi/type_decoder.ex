@@ -267,7 +267,7 @@ defmodule ABI.TypeDecoder do
 
   @spec decode_int(binary(), integer()) :: {integer(), binary()}
   defp decode_int(data, size_in_bits) do
-    total_bit_size = size_in_bits + ExthCrypto.Math.mod(256 - size_in_bits, 256)
+    total_bit_size = size_in_bits + ABI.Math.mod(256 - size_in_bits, 256)
     <<value::integer-signed-big-size(total_bit_size), rest::binary>> = data
 
     {value, rest}
