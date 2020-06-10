@@ -59,10 +59,10 @@ defmodule ABI do
       [50, <<1::160>>]
 
       iex> ABI.decode("(address[])", "00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000000" |> Base.decode16!(case: :lower))
-      [{[]}]
+      [[]]
 
       iex> ABI.decode("(string)", "0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000b457468657220546f6b656e000000000000000000000000000000000000000000" |> Base.decode16!(case: :lower))
-      [{"Ether Token"}]
+      ["Ether Token"]
 
       iex> File.read!("priv/dog.abi.json")
       ...> |> Jason.decode!
@@ -72,11 +72,12 @@ defmodule ABI do
       [<<1::160>>, true]
   """
   def decode(function_signature, data) when is_binary(function_signature) do
-    decode(ABI.Parser.parse!(function_signature), data)
+    decode(ABI.FunctionSelector.decode(function_signature), data)
   end
 
   def decode(%ABI.FunctionSelector{} = function_selector, data) do
-    ABI.TypeDecoder.decode(data, function_selector)
+    [res] = ABI.TypeDecoder.decode_raw(data, [{:tuple, function_selector.types}])
+    Tuple.to_list(res)
   end
 
   @doc """
@@ -121,7 +122,7 @@ defmodule ABI do
       []
 
       iex> ABI.decode("(string)", "000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000643132333435363738393031323334353637383930313233343536373839303132333435363738393031323334353637383930313233343536373839303132333435363738393031323334353637383930313233343536373839303132333435363738393000000000000000000000000000000000000000000000000000000000" |> Base.decode16!(case: :lower))
-      [{String.duplicate("1234567890", 10)}]
+      [String.duplicate("1234567890", 10)]
 
       iex> [%{
       ...>   "payable" => false,

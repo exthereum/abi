@@ -1,3 +1,5 @@
+# 0.1.15
+* Properly treat all function encodes as tuple encodings
 # 0.1.14
 * Fix 0-length `type[]` encoding
 # 0.1.13

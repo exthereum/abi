@@ -4,7 +4,7 @@ defmodule ABI.Mixfile do
   def project do
     [
       app: :abi,
-      version: "0.1.14",
+      version: "0.1.15",
       elixir: "~> 1.7",
       description: "Ethereum's ABI Interface",
       package: [
