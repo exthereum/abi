@@ -131,9 +131,29 @@ defmodule ABI.TypeDecoder do
           765664983403968947098136133435535343021479462042,
         ]
       }]
+
+      iex> "000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000034241540000000000000000000000000000000000000000000000000000000000"
+      ...> |> Base.decode16!(case: :lower)
+      ...> |> ABI.TypeDecoder.decode(
+      ...>      %ABI.FunctionSelector{
+      ...>        function: "price",
+      ...>        types: [
+      ...>          :string
+      ...>        ],
+      ...>        returns: {:uint, 256}
+      ...>      }
+      ...>    )
+      ["BAT"]
   """
+
   def decode(encoded_data, function_selector) do
-    decode_raw(encoded_data, function_selector.types)
+    if is_nil(function_selector.function) do
+      decode_raw(encoded_data, function_selector.types)
+    else
+      [res] = decode_raw(encoded_data, [{:tuple, function_selector.types}])
+
+      Tuple.to_list(res)
+    end
   end
 
   @doc """
