@@ -24,6 +24,19 @@ defmodule ABI.TypeEncoder do
       ...> |> Base.encode16(case: :lower)
       "cdcd77c000000000000000000000000000000000000000000000000000000000000000450000000000000000000000000000000000000000000000000000000000000001"
 
+      iex> ["BAT"]
+      ...> |> ABI.TypeEncoder.encode(
+      ...>      %ABI.FunctionSelector{
+      ...>        function: "price",
+      ...>        types: [
+      ...>          :string
+      ...>        ],
+      ...>        returns: {:uint, 256}
+      ...>      }
+      ...>    )
+      ...> |> Base.encode16(case: :lower)
+      "fe2c6198000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000034241540000000000000000000000000000000000000000000000000000000000"
+
       iex> ["hello world"]
       ...> |> ABI.TypeEncoder.encode(
       ...>      %ABI.FunctionSelector{
@@ -98,7 +111,15 @@ defmodule ABI.TypeEncoder do
       "000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000110000000000000000000000000000000000000000000000000000000000000001"
   """
   def encode(data, function_selector) do
-    encode_method_id(function_selector) <> encode_raw(data, function_selector.types)
+    encode_method_id(function_selector) <> do_encode_data(data, function_selector)
+  end
+
+  defp do_encode_data(data, %ABI.FunctionSelector{function: nil}=function_selector) do
+    encode_raw(data, function_selector.types)
+  end
+
+  defp do_encode_data(data, %ABI.FunctionSelector{}=function_selector) do
+    encode_raw([List.to_tuple(data)], [{:tuple, function_selector.types}])
   end
 
   @doc """
