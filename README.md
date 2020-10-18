@@ -10,7 +10,14 @@ by adding `abi` to your list of dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:abi, "~> 0.1.13"}
+    {:abi, "~> 0.1.13"},
+    # You must explicitly include a keccack hash provider.
+    #
+    # Pure Elixir implementation that is much slower than compiled NIF
+    {:ex_sha3, "~> 0.1.1"},
+    # Or
+    # Rust NIF with support for Erlang OTP 23
+    {:ex_keccak, "~> 0.1.2"}
   ]
 end
 ```
