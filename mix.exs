@@ -32,7 +32,8 @@ defmodule ABI.Mixfile do
       {:ex_doc, "~> 0.19", only: :dev, runtime: false},
       {:dialyxir, "~> 1.0.0-rc.4", only: [:dev, :test], runtime: false},
       {:jason, "~>  1.1"},
-      {:keccakf1600, "~> 2.0.0", hex: :keccakf1600_orig}
+      {:ex_sha3, "~> 0.1.1", optional: true},
+      {:ex_keccak, "~> 0.1.2", optional: true}
     ]
   end
 end
