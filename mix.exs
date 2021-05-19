@@ -32,7 +32,7 @@ defmodule ABI.Mixfile do
       {:ex_doc, "~> 0.19", only: :dev, runtime: false},
       {:dialyxir, "~> 1.0.0-rc.4", only: [:dev, :test], runtime: false},
       {:jason, "~>  1.1"},
-      {:keccakf1600, "~> 2.0.0", hex: :keccakf1600_orig}
+      {:keccakf1600, git: "https://github.com/compound-finance/erlang-keccakf1600", branch: "jflatow/no-erl-interface"}
     ]
   end
 end
