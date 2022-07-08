@@ -41,6 +41,6 @@ defmodule ABI.Math do
   """
   @spec kec(binary()) :: binary()
   def kec(data) do
-    :keccakf1600.sha3_256(data)
+    ExSha3.keccak_256(data)
   end
 end
