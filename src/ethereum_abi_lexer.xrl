@@ -7,6 +7,7 @@ TYPES      = uint|int|address|bool|fixed|uint|ufixed|bytes|function|string
 
 Rules.
 
+indexed       : {token, {'indexed',  TokenLine, TokenChars}}.
 {TYPES}       : {token, {typename,   TokenLine, TokenChars}}.
 {INT}         : {token, {digits,     TokenLine, TokenChars}}.
 {LETTERS}     : {token, {letters,    TokenLine, TokenChars}}.
@@ -15,6 +16,7 @@ Rules.
 \(            : {token, {'(',        TokenLine}}.
 \)            : {token, {')',        TokenLine}}.
 ,             : {token, {',',        TokenLine}}.
+x             : {token, {'x',        TokenLine, TokenChars}}.
 ->            : {token, {'->',       TokenLine}}.
 {WHITESPACE}+ : skip_token.
 

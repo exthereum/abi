@@ -14,17 +14,18 @@ defmodule ABI.FunctionSelector do
           | :address
           | {:array, type}
           | {:array, type, non_neg_integer}
-          | {:tuple, [type]}
-          | {:struct, String.t(), [type], [String.t()]}
+          | {:tuple, [argument_type]}
+
+  @type argument_type ::
+          %{:type => type, optional(:name) => String.t(), optional(:indexed) => boolean()}
 
   @type t :: %__MODULE__{
           function: String.t(),
-          types: [type],
-          names: nil | [String.t() | nil],
+          types: [argument_type],
           returns: type
         }
 
-  defstruct [:function, :types, :names, :returns]
+  defstruct [:function, :types, :returns]
 
   @doc """
   Decodes a function selector to a struct.
@@ -35,8 +36,26 @@ defmodule ABI.FunctionSelector do
       %ABI.FunctionSelector{
         function: "bark",
         types: [
-          {:uint, 256},
-          :bool
+          %{type: {:uint, 256}},
+          %{type: :bool}
+        ]
+      }
+
+      iex> ABI.FunctionSelector.decode("bark(uint256 name, bool loud)")
+      %ABI.FunctionSelector{
+        function: "bark",
+        types: [
+          %{type: {:uint, 256}, name: "name"},
+          %{type: :bool, name: "loud"}
+        ]
+      }
+
+      iex> ABI.FunctionSelector.decode("bark(uint256 name,bool indexed loud)")
+      %ABI.FunctionSelector{
+        function: "bark",
+        types: [
+          %{type: {:uint, 256}, name: "name"},
+          %{type: :bool, name: "loud", indexed: true}
         ]
       }
 
@@ -44,8 +63,8 @@ defmodule ABI.FunctionSelector do
       %ABI.FunctionSelector{
         function: nil,
         types: [
-          {:uint, 256},
-          :bool
+          %{type: {:uint, 256}},
+          %{type: :bool}
         ]
       }
 
@@ -53,9 +72,9 @@ defmodule ABI.FunctionSelector do
       %ABI.FunctionSelector{
         function: "growl",
         types: [
-          {:uint, 256},
-          :address,
-          {:array, :string}
+          %{type: {:uint, 256}},
+          %{type: :address},
+          %{type: {:array, :string}}
         ]
       }
 
@@ -75,7 +94,7 @@ defmodule ABI.FunctionSelector do
       %ABI.FunctionSelector{
         function: "pet",
         types: [
-          {:array, :address}
+          %{type: {:array, :address}}
         ]
       }
 
@@ -83,7 +102,7 @@ defmodule ABI.FunctionSelector do
       %ABI.FunctionSelector{
         function: "paw",
         types: [
-          {:array, :string, 2}
+          %{type: {:array, :string, 2}}
         ]
       }
 
@@ -91,7 +110,7 @@ defmodule ABI.FunctionSelector do
       %ABI.FunctionSelector{
         function: "scram",
         types: [
-          {:array, {:uint, 256}}
+          %{type: {:array, {:uint, 256}}}
         ]
       }
 
@@ -99,7 +118,7 @@ defmodule ABI.FunctionSelector do
       %ABI.FunctionSelector{
         function: "shake",
         types: [
-          {:tuple, [:string]}
+          %{type: {:tuple, [%{type: :string}]}}
         ]
       }
   """
@@ -120,7 +139,7 @@ defmodule ABI.FunctionSelector do
   """
   def decode_raw(type_string) do
     {:tuple, types} = decode_type("(#{type_string})")
-    types
+    Enum.map(types, fn argument_type -> argument_type.type end)
   end
 
   @doc """
@@ -129,53 +148,112 @@ defmodule ABI.FunctionSelector do
   ## Examples
 
       iex> ABI.FunctionSelector.parse_specification_item(%{"type" => "function", "name" => "fun", "inputs" => [%{"name" => "a", "type" => "uint96", "internalType" => "uint96"}]})
-      %ABI.FunctionSelector{function: "fun", types: [uint: 96], names: ["a"], returns: nil}
+      %ABI.FunctionSelector{
+        function: "fun",
+        types: [%{type: {:uint, 96}, name: "a"}],
+        returns: nil
+      }
 
       iex> ABI.FunctionSelector.parse_specification_item(%{"type" => "function", "name" => "fun", "inputs" => [%{"name" => "s", "type" => "tuple", "internalType" => "tuple", "components" => [%{"name" => "a", "type" => "uint256", "internalType" => "uint256"},%{"name" => "b", "type" => "address", "internalType" => "address"},%{"name" => "c", "type" => "bytes", "internalType" => "bytes"}]},%{"name" => "d", "type" => "uint256", "internalType" => "uint256"}],"outputs" => [%{"name" => "", "type" => "bytes", "internalType" => "bytes"}],"stateMutability" => "nonpayable"})
-      %ABI.FunctionSelector{function: "fun", types: [{:tuple, [{:uint, 256}, :address, :bytes]}, {:uint, 256}], names: ["s", "d"], returns: :bytes}
+      %ABI.FunctionSelector{
+        function: "fun",
+        types: [
+          %{
+            type:
+              {:tuple, [
+                %{type: {:uint, 256}, name: "a"},
+                %{type: :address, name: "b"},
+                %{type: :bytes, name: "c"}
+              ]},
+              name: "s"
+          }, %{
+            type: {:uint, 256},
+            name: "d"
+          }
+        ],
+        returns: [%{name: "", type: :bytes}],
+      }
 
       iex> ABI.FunctionSelector.parse_specification_item(%{"type" => "function", "name" => "fun", "inputs" => [%{"name" => "s", "type" => "tuple", "internalType" => "struct Contract.Struct", "components" => [%{"name" => "a", "type" => "uint256", "internalType" => "uint256"},%{"name" => "b", "type" => "address", "internalType" => "address"},%{"name" => "c", "type" => "bytes", "internalType" => "bytes"}]},%{"name" => "d", "type" => "uint256", "internalType" => "uint256"}],"outputs" => [%{"name" => "", "type" => "bytes", "internalType" => "bytes"}],"stateMutability" => "nonpayable"})
-      %ABI.FunctionSelector{function: "fun", types: [{:struct, "Contract.Struct", [{:uint, 256}, :address, :bytes], ["a", "b", "c"]}, {:uint, 256}], names: ["s", "d"], returns: :bytes}
+      %ABI.FunctionSelector{
+        function: "fun",
+        types: [
+          %{
+            type:
+              {:tuple, [
+                %{type: {:uint, 256}, name: "a"},
+                %{type: :address, name: "b"},
+                %{type: :bytes, name: "c"}
+              ]},
+              name: "s"
+          }, %{
+            type: {:uint, 256},
+            name: "d"
+          }
+        ],
+        returns: [%{name: "", type: :bytes}],
+      }
 
       iex> ABI.FunctionSelector.parse_specification_item(%{"type" => "function", "name" => "fun", "inputs" => [%{"name" => "s", "type" => "tuple", "internalType" => "struct Contract.Struct", "components" => [%{"name" => "a", "type" => "uint256", "internalType" => "uint256"},%{"type" => "address", "internalType" => "address"},%{"name" => "c", "type" => "bytes", "internalType" => "bytes"}]},%{"name" => "d", "type" => "uint256", "internalType" => "uint256"}],"outputs" => [%{"name" => "", "type" => "bytes", "internalType" => "bytes"}],"stateMutability" => "nonpayable"})
-      %ABI.FunctionSelector{function: "fun", types: [{:struct, "Contract.Struct", [{:uint, 256}, :address, :bytes], ["a", "var1", "c"]}, {:uint, 256}], names: ["s", "d"], returns: :bytes}
+      %ABI.FunctionSelector{
+        function: "fun",
+        types: [
+          %{
+            type:
+              {:tuple, [
+                %{type: {:uint, 256}, name: "a"},
+                %{type: :address},
+                %{type: :bytes, name: "c"}
+              ]},
+              name: "s"
+          }, %{
+            type: {:uint, 256},
+            name: "d"
+          }
+        ],
+        returns: [%{name: "", type: :bytes}],
+      }
 
-      iex> ABI.FunctionSelector.parse_specification_item(%{"type" => "function", "name" => "fun", "inputs" => [%{"type" => "tuple", "internalType" => "struct Contract.Struct", "components" => [%{"name" => "a", "type" => "uint256", "internalType" => "uint256"},%{"type" => "address", "internalType" => "address"},%{"name" => "c", "type" => "bytes", "internalType" => "bytes"}]},%{"name" => "d", "type" => "uint256", "internalType" => "uint256"}],"outputs" => [%{"name" => "", "type" => "bytes", "internalType" => "bytes"}],"stateMutability" => "nonpayable"})
-      %ABI.FunctionSelector{function: "fun", types: [{:struct, "Contract.Struct", [{:uint, 256}, :address, :bytes], ["a", "var1", "c"]}, {:uint, 256}], names: [nil, "d"], returns: :bytes}
+      iex> ABI.FunctionSelector.parse_specification_item(%{"type" => "fallback"})
+      %ABI.FunctionSelector{
+        function: nil,
+        types: [],
+        returns: nil
+      }
+
+      iex> ABI.FunctionSelector.parse_specification_item(%{"type" => "receive"})
+      %ABI.FunctionSelector{
+        function: nil,
+        types: [],
+        returns: nil
+      }
   """
-  def parse_specification_item(%{"type" => "function"} = item) do
+  def parse_specification_item(%{"type" => _function_type} = item) do
     input_types = Enum.map(Map.get(item, "inputs", []), &parse_specification_type/1)
-    output_types = Enum.map(Map.get(item, "outputs", []), &parse_specification_type/1)
-    names = Enum.map(Map.get(item, "inputs", []), fn input -> input["name"] end)
+    output_types = if Map.has_key?(item, "outputs"), do: Enum.map(item["outputs"], &parse_specification_type/1), else: nil
 
     %ABI.FunctionSelector{
       function: Map.get(item, "name", nil),
       types: input_types,
-      names: names,
-      returns: List.first(output_types)
+      returns: output_types
     }
   end
 
-  def parse_specification_item(%{"type" => "fallback"}) do
-    %ABI.FunctionSelector{
-      function: nil,
-      types: [],
-      names: [],
-      returns: nil
-    }
-  end
-
-  def parse_specification_item(_), do: nil
-
-  defp parse_specification_type(%{"type" => "tuple", "internalType" => "struct " <> struct_name, "components" => components}) do
-    {:struct, struct_name, Enum.map(components, &parse_specification_type/1), Enum.with_index(components, fn x, i -> x["name"] || "var#{i}" end)}
+  defp parse_specification_type(%{"type" => "tuple", "name" => name, "components" => components}) do
+    %{name: name, type: {:tuple, Enum.map(components, &parse_specification_type/1)}}
   end
 
   defp parse_specification_type(%{"type" => "tuple", "components" => components}) do
-    {:tuple, Enum.map(components, &parse_specification_type/1)}
+    %{type: {:tuple, Enum.map(components, &parse_specification_type/1)}}
   end
 
-  defp parse_specification_type(%{"type" => type}), do: decode_type(type)
+  defp parse_specification_type(%{"type" => type, "name" => name}) do
+    %{type: decode_type(type), name: name}
+  end
+
+  defp parse_specification_type(%{"type" => type}) do
+    %{type: decode_type(type)}
+  end
 
   @doc """
   Decodes the given type-string as a single type.
@@ -186,7 +264,7 @@ defmodule ABI.FunctionSelector do
       {:uint, 256}
 
       iex> ABI.FunctionSelector.decode_type("(bool,address)")
-      {:tuple, [:bool, :address]}
+      {:tuple, [%{type: :bool}, %{type: :address}]}
 
       iex> ABI.FunctionSelector.decode_type("address[][3]")
       {:array, {:array, :address}, 3}
@@ -198,16 +276,16 @@ defmodule ABI.FunctionSelector do
   @doc """
   Encodes a function call signature.
 
-  ## Examples
+  ## Example
 
       iex> ABI.FunctionSelector.encode(%ABI.FunctionSelector{
       ...>   function: "bark",
       ...>   types: [
-      ...>     {:uint, 256},
-      ...>     :bool,
-      ...>     {:array, :string},
-      ...>     {:array, :string, 3},
-      ...>     {:tuple, [{:uint, 256}, :bool]}
+      ...>     %{type: {:uint, 256}},
+      ...>     %{type: :bool},
+      ...>     %{type: {:array, :string}},
+      ...>     %{type: {:array, :string, 3}},
+      ...>     %{type: {:tuple, [%{type: {:uint, 256}}, %{type: :bool}]}}
       ...>   ]
       ...> })
       "bark(uint256,bool,string[],string[3],(uint256,bool))"
@@ -219,7 +297,7 @@ defmodule ABI.FunctionSelector do
   end
 
   defp get_types(function_selector) do
-    for type <- function_selector.types do
+    for %{type: type} <- function_selector.types do
       get_type(type)
     end
   end
@@ -241,7 +319,7 @@ defmodule ABI.FunctionSelector do
   defp get_type({:array, type}), do: "#{get_type(type)}[]"
 
   defp get_type({:tuple, types}) do
-    encoded_types = Enum.map(types, &get_type/1)
+    encoded_types = Enum.map(types, fn argument_type -> get_type(argument_type.type) end)
     "(#{Enum.join(encoded_types, ",")})"
   end
 
