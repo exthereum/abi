@@ -16,7 +16,7 @@ defmodule ABI do
       ...> |> Base.encode16(case: :lower)
       "000000000000000000000000000000000000000000000000000000000000000a"
 
-      iex> ABI.encode("baz(uint,address)", [50, <<1::160>> |> :binary.decode_unsigned])
+      iex> ABI.encode("baz(uint,address)", [50, <<1::160>>])
       ...> |> Base.encode16(case: :lower)
       "a291add600000000000000000000000000000000000000000000000000000000000000320000000000000000000000000000000000000000000000000000000000000001"
 
@@ -27,7 +27,7 @@ defmodule ABI do
       iex> ABI.encode("baz(uint8)", [9999])
       ** (RuntimeError) Data overflow encoding uint, data `9999` cannot fit in 8 bits
 
-      iex> ABI.encode("(uint,address)", [{50, <<1::160>> |> :binary.decode_unsigned}])
+      iex> ABI.encode("(uint,address)", [{50, <<1::160>>}])
       ...> |> Base.encode16(case: :lower)
       "00000000000000000000000000000000000000000000000000000000000000320000000000000000000000000000000000000000000000000000000000000001"
 
@@ -43,7 +43,7 @@ defmodule ABI do
       ...> |> Jason.decode!
       ...> |> ABI.parse_specification
       ...> |> Enum.find(&(&1.function == "bark")) # bark(address,bool)
-      ...> |> ABI.encode([<<1::160>> |> :binary.decode_unsigned, true])
+      ...> |> ABI.encode([<<1::160>>, true])
       ...> |> Base.encode16(case: :lower)
       "b85d0bd200000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000001"
   """
@@ -87,7 +87,8 @@ defmodule ABI do
   end
 
   def decode(%ABI.FunctionSelector{} = function_selector, data) do
-    [res] = ABI.TypeDecoder.decode_raw(data, [{:tuple, function_selector.types}])
+    types = Enum.map(function_selector.types, fn %{type: type} -> type end)
+    [res] = ABI.TypeDecoder.decode_raw(data, [%{type: {:tuple, types}}])
     Tuple.to_list(res)
   end
 
@@ -103,8 +104,8 @@ defmodule ABI do
       iex> File.read!("priv/dog.abi.json")
       ...> |> Jason.decode!
       ...> |> ABI.parse_specification
-      [%ABI.FunctionSelector{function: "bark", returns: nil, types: [:address, :bool]},
-       %ABI.FunctionSelector{function: "rollover", returns: :bool, types: []}]
+      [%ABI.FunctionSelector{function: "bark", returns: nil, types: [%{name: "at", type: :address}, %{name: "loudly", type: :bool}]},
+       %ABI.FunctionSelector{function: "rollover", returns: %{name: "is_a_good_boy", type: :bool}, types: []}]
 
       iex> [%{
       ...>   "constant" => true,
@@ -119,7 +120,12 @@ defmodule ABI do
       ...>   "type" => "function"
       ...> }]
       ...> |> ABI.parse_specification
-      [%ABI.FunctionSelector{function: "bark", returns: nil, types: [:address, :bool]}]
+      [
+        %ABI.FunctionSelector{function: "bark", returns: nil, types: [
+          %{type: :address, name: "at"},
+          %{type: :bool, name: "loudly"}
+        ]}
+      ]
 
       iex> [%{
       ...>   "inputs" => [

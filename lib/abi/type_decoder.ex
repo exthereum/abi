@@ -19,8 +19,8 @@ defmodule ABI.TypeDecoder do
       ...>      %ABI.FunctionSelector{
       ...>        function: "baz",
       ...>        types: [
-      ...>          {:uint, 32},
-      ...>          :bool
+      ...>          %{type: {:uint, 32}},
+      ...>          %{type: :bool}
       ...>        ],
       ...>        returns: :bool
       ...>      }
@@ -33,7 +33,7 @@ defmodule ABI.TypeDecoder do
       ...>      %ABI.FunctionSelector{
       ...>        function: nil,
       ...>        types: [
-      ...>          :string
+      ...>          %{type: :string}
       ...>        ]
       ...>      }
       ...>    )
@@ -45,7 +45,7 @@ defmodule ABI.TypeDecoder do
       ...>      %ABI.FunctionSelector{
       ...>        function: nil,
       ...>        types: [
-      ...>          {:tuple, [{:uint, 32}, :bool]}
+      ...>          %{type: {:tuple, [{:uint, 32}, :bool]}}
       ...>        ]
       ...>      }
       ...>    )
@@ -57,7 +57,7 @@ defmodule ABI.TypeDecoder do
       ...>      %ABI.FunctionSelector{
       ...>        function: nil,
       ...>        types: [
-      ...>          {:array, {:uint, 32}, 2}
+      ...>          %{type: {:array, {:uint, 32}, 2}}
       ...>        ]
       ...>      }
       ...>    )
@@ -69,7 +69,7 @@ defmodule ABI.TypeDecoder do
       ...>      %ABI.FunctionSelector{
       ...>        function: nil,
       ...>        types: [
-      ...>          {:array, {:uint, 32}}
+      ...>          %{type: {:array, {:uint, 32}}}
       ...>        ]
       ...>      }
       ...>    )
@@ -81,9 +81,9 @@ defmodule ABI.TypeDecoder do
       ...>      %ABI.FunctionSelector{
       ...>        function: nil,
       ...>        types: [
-      ...>          {:array, {:uint, 32}, 2},
-      ...>          :bool,
-      ...>          {:bytes, 2}
+      ...>          %{type: {:array, {:uint, 32}, 2}},
+      ...>          %{type: :bool},
+      ...>          %{type: {:bytes, 2}}
       ...>        ]
       ...>      }
       ...>    )
@@ -95,7 +95,7 @@ defmodule ABI.TypeDecoder do
       ...>      %ABI.FunctionSelector{
       ...>        function: nil,
       ...>        types: [
-      ...>          {:tuple, [:string, :bool]}
+      ...>          %{type: {:tuple, [:string, :bool]}}
       ...>        ]
       ...>      }
       ...>    )
@@ -107,7 +107,7 @@ defmodule ABI.TypeDecoder do
       ...>      %ABI.FunctionSelector{
       ...>        function: nil,
       ...>        types: [
-      ...>          {:tuple, [{:array, :address}]}
+      ...>          %{type: {:tuple, [{:array, :address}]}}
       ...>        ]
       ...>      }
       ...>    )
@@ -118,10 +118,10 @@ defmodule ABI.TypeDecoder do
       ...> |> ABI.TypeDecoder.decode(
       ...>      %ABI.FunctionSelector{
       ...>        function: nil,
-      ...>        types: [{:tuple,[
+      ...>        types: [%{type: {:tuple,[
       ...>          :string,
       ...>          {:array, {:uint, 256}}
-      ...>        ]}]
+      ...>        ]}}]
       ...>      }
       ...>    )
       [{
@@ -138,7 +138,7 @@ defmodule ABI.TypeDecoder do
       ...>      %ABI.FunctionSelector{
       ...>        function: "price",
       ...>        types: [
-      ...>          :string
+      ...>          %{type: :string}
       ...>        ],
       ...>        returns: {:uint, 256}
       ...>      }
@@ -150,7 +150,8 @@ defmodule ABI.TypeDecoder do
     if is_nil(function_selector.function) do
       decode_raw(encoded_data, function_selector.types)
     else
-      [res] = decode_raw(encoded_data, [{:tuple, function_selector.types}])
+      types = Enum.map(function_selector.types, fn %{type: type} -> type end)
+      [res] = decode_raw(encoded_data, [%{type: {:tuple, types}}])
 
       Tuple.to_list(res)
     end
@@ -164,7 +165,7 @@ defmodule ABI.TypeDecoder do
 
       iex> "000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000007617765736f6d6500000000000000000000000000000000000000000000000000"
       ...> |> Base.decode16!(case: :lower)
-      ...> |> ABI.TypeDecoder.decode_raw([{:tuple, [:string, :bool]}])
+      ...> |> ABI.TypeDecoder.decode_raw([%{type: {:tuple, [:string, :bool]}}])
       [{"awesome", true}]
   """
   def decode_raw(encoded_data, types) do
@@ -178,7 +179,7 @@ defmodule ABI.TypeDecoder do
   defp do_decode([], _, acc), do: Enum.reverse(acc)
 
   defp do_decode([type | remaining_types], data, acc) do
-    {decoded, remaining_data} = decode_type(type, data)
+    {decoded, remaining_data} = decode_type(type.type, data)
 
     do_decode(remaining_types, remaining_data, [decoded | acc])
   end

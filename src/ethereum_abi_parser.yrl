@@ -1,10 +1,10 @@
-Terminals '(' ')' '[' ']' ',' '->' typename letters digits 'expecting selector' 'expecting type'.
-Nonterminals dispatch selector nontrivial_selector comma_delimited_types type_with_subscripts array_subscripts tuple array_subscript identifier  identifier_parts identifier_part type typespec.
+Terminals '(' ')' '[' ']' ',' '->' 'x' typename 'indexed' letters digits 'expecting identifier' 'expecting selector' 'expecting type'.
+Nonterminals dispatch selector nontrivial_selector comma_delimited_types type_with_subscripts type_index_name array_subscripts tuple array_subscript identifier  identifier_parts identifier_part type typespec.
 Rootsymbol dispatch.
 
 dispatch -> 'expecting type' type_with_subscripts : {type, '$2'}.
 dispatch -> 'expecting selector' selector : {selector, '$2'}.
-dispatch -> tuple : {selector, #{function => nil, types => ['$1'], returns => nil}}.
+dispatch -> tuple : {selector, #{function => nil, types => lists:map(fun wrap_type/1, ['$1']), returns => nil}}.
 dispatch -> nontrivial_selector : {selector, '$1'}.
 
 selector -> typespec : #{function => nil, types => '$1', returns => nil}.
@@ -18,10 +18,10 @@ typespec -> '(' ')' : [].
 typespec -> '(' comma_delimited_types ')' : '$2'.
 
 tuple -> '(' ')' : {tuple, []}.
-tuple -> '(' comma_delimited_types ')' : {tuple, '$2'}.
+tuple -> '(' comma_delimited_types ')' : {tuple, lists:map(fun get_type/1, '$2')}.
 
-comma_delimited_types -> type_with_subscripts : ['$1'].
-comma_delimited_types -> type_with_subscripts ',' comma_delimited_types : ['$1' | '$3'].
+comma_delimited_types -> type_index_name : ['$1'].
+comma_delimited_types -> type_index_name ',' comma_delimited_types : ['$1' | '$3'].
 
 identifier -> identifier_parts : iolist_to_binary('$1').
 
@@ -31,6 +31,11 @@ identifier_parts -> identifier_part identifier_parts : ['$1' | '$2'].
 identifier_part -> typename : v('$1').
 identifier_part -> letters : v('$1').
 identifier_part -> digits : v('$1').
+
+type_index_name -> type_with_subscripts : #{type => '$1'}.
+type_index_name -> type_with_subscripts 'indexed' : #{type => '$1', indexed => true}.
+type_index_name -> type_with_subscripts 'indexed' identifier : #{type => '$1', name => '$3', indexed => true}.
+type_index_name -> type_with_subscripts identifier : #{type => '$1', name => '$2'}.
 
 type_with_subscripts -> type : '$1'.
 type_with_subscripts -> type array_subscripts : with_subscripts('$1', '$2').
@@ -45,7 +50,7 @@ type -> typename :
   plain_type(list_to_atom(v('$1'))).
 type -> typename digits :
   juxt_type(list_to_atom(v('$1')), list_to_integer(v('$2'))).
-type -> typename digits letters digits :
+type -> typename digits 'x' digits :
   double_juxt_type(list_to_atom(v('$1')), v('$3'), list_to_integer(v('$2')), list_to_integer(v('$4'))).
 type -> tuple : '$1'.
 
@@ -76,3 +81,7 @@ juxt_type(bytes, M) when M > 0, M =< 32 -> {bytes, M}.
 
 double_juxt_type(fixed, 'x', M, N) when M >= 0, M =< 256, (M rem 8) =:= 0, N > 0, N =< 80 -> {fixed, M, N};
 double_juxt_type(ufixed, 'x', M, N) when M >= 0, M =< 256, (M rem 8) =:= 0, N > 0, N =< 80 -> {ufixed, M, N}.
+
+get_type(T) -> maps:get(type, T).
+
+wrap_type(T) -> #{type => T}.

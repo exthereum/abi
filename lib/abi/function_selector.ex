@@ -16,9 +16,12 @@ defmodule ABI.FunctionSelector do
           | {:array, type, non_neg_integer}
           | {:tuple, [type]}
 
+  @type argument_type ::
+          %{:type => type, optional(:name) => String.t(), optional(:indexed) => boolean()}
+
   @type t :: %__MODULE__{
           function: String.t(),
-          types: [type],
+          types: [argument_type],
           returns: type
         }
 
@@ -33,8 +36,26 @@ defmodule ABI.FunctionSelector do
       %ABI.FunctionSelector{
         function: "bark",
         types: [
-          {:uint, 256},
-          :bool
+          %{type: {:uint, 256}},
+          %{type: :bool}
+        ]
+      }
+
+      iex> ABI.FunctionSelector.decode("bark(uint256 name, bool loud)")
+      %ABI.FunctionSelector{
+        function: "bark",
+        types: [
+          %{type: {:uint, 256}, name: "name"},
+          %{type: :bool, name: "loud"}
+        ]
+      }
+
+      iex> ABI.FunctionSelector.decode("bark(uint256 name,bool indexed loud)")
+      %ABI.FunctionSelector{
+        function: "bark",
+        types: [
+          %{type: {:uint, 256}, name: "name"},
+          %{type: :bool, name: "loud", indexed: true}
         ]
       }
 
@@ -42,8 +63,8 @@ defmodule ABI.FunctionSelector do
       %ABI.FunctionSelector{
         function: nil,
         types: [
-          {:uint, 256},
-          :bool
+          %{type: {:uint, 256}},
+          %{type: :bool}
         ]
       }
 
@@ -51,9 +72,9 @@ defmodule ABI.FunctionSelector do
       %ABI.FunctionSelector{
         function: "growl",
         types: [
-          {:uint, 256},
-          :address,
-          {:array, :string}
+          %{type: {:uint, 256}},
+          %{type: :address},
+          %{type: {:array, :string}}
         ]
       }
 
@@ -73,7 +94,7 @@ defmodule ABI.FunctionSelector do
       %ABI.FunctionSelector{
         function: "pet",
         types: [
-          {:array, :address}
+          %{type: {:array, :address}}
         ]
       }
 
@@ -81,7 +102,7 @@ defmodule ABI.FunctionSelector do
       %ABI.FunctionSelector{
         function: "paw",
         types: [
-          {:array, :string, 2}
+          %{type: {:array, :string, 2}}
         ]
       }
 
@@ -89,7 +110,7 @@ defmodule ABI.FunctionSelector do
       %ABI.FunctionSelector{
         function: "scram",
         types: [
-          {:array, {:uint, 256}}
+          %{type: {:array, {:uint, 256}}}
         ]
       }
 
@@ -97,7 +118,7 @@ defmodule ABI.FunctionSelector do
       %ABI.FunctionSelector{
         function: "shake",
         types: [
-          {:tuple, [:string]}
+          %{type: {:tuple, [:string]}}
         ]
       }
   """
@@ -149,7 +170,10 @@ defmodule ABI.FunctionSelector do
 
   def parse_specification_item(_), do: nil
 
-  defp parse_specification_type(%{"type" => type}), do: decode_type(type)
+  defp parse_specification_type(%{"type" => type, "name" => name}),
+    do: %{type: decode_type(type), name: name}
+
+  defp parse_specification_type(%{"type" => type}), do: %{type: decode_type(type)}
 
   @doc """
   Decodes the given type-string as a single type.
@@ -177,11 +201,11 @@ defmodule ABI.FunctionSelector do
       iex> ABI.FunctionSelector.encode(%ABI.FunctionSelector{
       ...>   function: "bark",
       ...>   types: [
-      ...>     {:uint, 256},
-      ...>     :bool,
-      ...>     {:array, :string},
-      ...>     {:array, :string, 3},
-      ...>     {:tuple, [{:uint, 256}, :bool]}
+      ...>     %{type: {:uint, 256}},
+      ...>     %{type: :bool},
+      ...>     %{type: {:array, :string}},
+      ...>     %{type: {:array, :string, 3}},
+      ...>     %{type: {:tuple, [{:uint, 256}, :bool]}}
       ...>   ]
       ...> })
       "bark(uint256,bool,string[],string[3],(uint256,bool))"
@@ -193,7 +217,7 @@ defmodule ABI.FunctionSelector do
   end
 
   defp get_types(function_selector) do
-    for type <- function_selector.types do
+    for %{type: type} <- function_selector.types do
       get_type(type)
     end
   end

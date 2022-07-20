@@ -15,8 +15,8 @@ defmodule ABI.TypeEncoder do
       ...>      %ABI.FunctionSelector{
       ...>        function: "baz",
       ...>        types: [
-      ...>          {:uint, 32},
-      ...>          :bool
+      ...>          %{type: {:uint, 32}},
+      ...>          %{type: :bool}
       ...>        ],
       ...>        returns: :bool
       ...>      }
@@ -29,7 +29,7 @@ defmodule ABI.TypeEncoder do
       ...>      %ABI.FunctionSelector{
       ...>        function: "price",
       ...>        types: [
-      ...>          :string
+      ...>          %{type: :string}
       ...>        ],
       ...>        returns: {:uint, 256}
       ...>      }
@@ -37,12 +37,37 @@ defmodule ABI.TypeEncoder do
       ...> |> Base.encode16(case: :lower)
       "fe2c6198000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000034241540000000000000000000000000000000000000000000000000000000000"
 
+
+      iex> [Base.decode16!("ffffffffffffffffffffffffffffffffffffffff", case: :lower)]
+      ...> |> ABI.TypeEncoder.encode(
+      ...>      %ABI.FunctionSelector{
+      ...>        function: "price",
+      ...>        types: [
+      ...>          %{type: :address}
+      ...>        ]
+      ...>      }
+      ...>    )
+      ...> |> Base.encode16(case: :lower)
+      "aea91078000000000000000000000000ffffffffffffffffffffffffffffffffffffffff"
+
+      iex> [1]
+      ...> |> ABI.TypeEncoder.encode(
+      ...>      %ABI.FunctionSelector{
+      ...>        function: "price",
+      ...>        types: [
+      ...>          %{type: :address}
+      ...>        ]
+      ...>      }
+      ...>    )
+      ...> |> Base.encode16(case: :lower)
+      "aea910780000000000000000000000000000000000000000000000000000000000000001"
+
       iex> ["hello world"]
       ...> |> ABI.TypeEncoder.encode(
       ...>      %ABI.FunctionSelector{
       ...>        function: nil,
       ...>        types: [
-      ...>          :string,
+      ...>          %{type: :string},
       ...>        ]
       ...>      }
       ...>    )
@@ -54,7 +79,7 @@ defmodule ABI.TypeEncoder do
       ...>      %ABI.FunctionSelector{
       ...>        function: nil,
       ...>        types: [
-      ...>          {:tuple, [:string, :bool]}
+      ...>          %{type: {:tuple, [:string, :bool]}}
       ...>        ]
       ...>      }
       ...>    )
@@ -66,7 +91,7 @@ defmodule ABI.TypeEncoder do
       ...>      %ABI.FunctionSelector{
       ...>        function: nil,
       ...>        types: [
-      ...>          {:tuple, [{:uint, 32}, :bool, {:bytes, 2}]}
+      ...>          %{type: {:tuple, [{:uint, 32}, :bool, {:bytes, 2}]}}
       ...>        ]
       ...>      }
       ...>    )
@@ -78,7 +103,7 @@ defmodule ABI.TypeEncoder do
       ...>      %ABI.FunctionSelector{
       ...>        function: "baz",
       ...>        types: [
-      ...>          {:array, {:uint, 32}, 2}
+      ...>          %{type: {:array, {:uint, 32}, 2}}
       ...>        ]
       ...>      }
       ...>    )
@@ -90,8 +115,8 @@ defmodule ABI.TypeEncoder do
       ...>      %ABI.FunctionSelector{
       ...>        function: nil,
       ...>        types: [
-      ...>          {:array, {:uint, 32}, 2},
-      ...>          :bool
+      ...>          %{type: {:array, {:uint, 32}, 2}},
+      ...>          %{type: :bool}
       ...>        ]
       ...>      }
       ...>    )
@@ -103,7 +128,7 @@ defmodule ABI.TypeEncoder do
       ...>      %ABI.FunctionSelector{
       ...>        function: nil,
       ...>        types: [
-      ...>          {:array, {:uint, 32}}
+      ...>          %{type: {:array, {:uint, 32}}}
       ...>        ]
       ...>      }
       ...>    )
@@ -119,7 +144,8 @@ defmodule ABI.TypeEncoder do
   end
 
   defp do_encode_data(data, %ABI.FunctionSelector{}=function_selector) do
-    encode_raw([List.to_tuple(data)], [{:tuple, function_selector.types}])
+    types = Enum.map(function_selector.types, fn %{type: type} -> type end)
+    encode_raw([List.to_tuple(data)], [%{type: {:tuple, types}}])
   end
 
   @doc """
@@ -130,7 +156,7 @@ defmodule ABI.TypeEncoder do
   ## Examples
 
       iex> [{"awesome", true}]
-      ...> |> ABI.TypeEncoder.encode_raw([{:tuple, [:string, :bool]}])
+      ...> |> ABI.TypeEncoder.encode_raw([%{type: {:tuple, [:string, :bool]}}])
       ...> |> Base.encode16(case: :lower)
       "000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000007617765736f6d6500000000000000000000000000000000000000000000000000"
   """
@@ -159,7 +185,7 @@ defmodule ABI.TypeEncoder do
   defp do_encode([], _, acc), do: :erlang.iolist_to_binary(Enum.reverse(acc))
 
   defp do_encode([type | remaining_types], data, acc) do
-    {encoded, remaining_data} = encode_type(type, data)
+    {encoded, remaining_data} = encode_type(type.type, data)
 
     do_encode(remaining_types, remaining_data, [encoded | acc])
   end
