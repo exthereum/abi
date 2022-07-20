@@ -93,6 +93,39 @@ defmodule ABI do
   end
 
   @doc """
+  Decodes an event, including indexed and non-indexed data.
+
+  ## Examples
+
+      iex> ABI.decode_event(
+      ...>   "Transfer(address indexed from, address indexed to, uint256 amount)",
+      ...>   "00000000000000000000000000000000000000000000000000000004a817c800" |> Base.decode16!(case: :lower),
+      ...>   [
+      ...>     "ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef" |> Base.decode16!(case: :lower),
+      ...>     "000000000000000000000000b2b7c1795f19fbc28fda77a95e59edbb8b3709c8" |> Base.decode16!(case: :lower),
+      ...>     "0000000000000000000000007795126b3ae468f44c901287de98594198ce38ea" |> Base.decode16!(case: :lower)
+      ...>   ]
+      ...> )
+      {"Transfer",
+       %{
+         "amount" => 20_000_000_000,
+         "from" => [
+           <<252, 55, 141, 170, 149, 43, 167, 241, 99, 196, 161, 22, 40, 245, 90, 77, 245, 35, 179, 239>>
+         ],
+         "to" => [
+           <<178, 183, 193, 121, 95, 25, 251, 194, 143, 218, 119, 169, 94, 89, 237, 187, 139, 55, 9, 200>>
+         ]
+       }}
+  """
+  def decode_event(function_signature, data, topics) when is_binary(function_signature) do
+    decode_event(ABI.FunctionSelector.decode(function_signature), data, topics)
+  end
+
+  def decode_event(%ABI.FunctionSelector{} = function_selector, data, topics) do
+    ABI.Event.decode_event(data, topics, function_selector)
+  end
+
+  @doc """
   Parses the given ABI specification document into an array of `ABI.FunctionSelector`s.
 
   Non-function entries (e.g. constructors) in the ABI specification are skipped. Fallback function entries are accepted.

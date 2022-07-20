@@ -4,8 +4,8 @@ defmodule ABI.Mixfile do
   def project do
     [
       app: :abi,
-      version: "0.1.18",
-      elixir: "~> 1.12",
+      version: "0.1.19",
+      elixir: "~> 1.13",
       description: "Ethereum's ABI Interface",
       package: [
         maintainers: ["Geoffrey Hayes", "Mason Fischer"],
