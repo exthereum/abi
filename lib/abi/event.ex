@@ -23,12 +23,8 @@ defmodule ABI.Event do
       {"Transfer",
        %{
          "amount" => 20_000_000_000,
-         "from" => [
-           <<252, 55, 141, 170, 149, 43, 167, 241, 99, 196, 161, 22, 40, 245, 90, 77, 245, 35, 179, 239>>
-         ],
-         "to" => [
-           <<178, 183, 193, 121, 95, 25, 251, 194, 143, 218, 119, 169, 94, 89, 237, 187, 139, 55, 9, 200>>
-         ]
+         "from" => <<252, 55, 141, 170, 149, 43, 167, 241, 99, 196, 161, 22, 40, 245, 90, 77, 245, 35, 179, 239>>,
+         "to" => <<178, 183, 193, 121, 95, 25, 251, 194, 143, 218, 119, 169, 94, 89, 237, 187, 139, 55, 9, 200>>
        }}
   """
   def decode_event(data, topics, function_selector) do
@@ -40,7 +36,8 @@ defmodule ABI.Event do
       indexed_types
       |> Enum.zip(topics)
       |> Enum.map(fn {type, topic} ->
-        {type.name, ABI.TypeDecoder.decode_raw(topic, [type])}
+        [value] = ABI.TypeDecoder.decode_raw(topic, [type])
+        {type.name, value}
       end)
       |> Enum.into(%{})
 

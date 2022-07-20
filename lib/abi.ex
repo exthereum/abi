@@ -109,12 +109,8 @@ defmodule ABI do
       {"Transfer",
        %{
          "amount" => 20_000_000_000,
-         "from" => [
-           <<252, 55, 141, 170, 149, 43, 167, 241, 99, 196, 161, 22, 40, 245, 90, 77, 245, 35, 179, 239>>
-         ],
-         "to" => [
-           <<178, 183, 193, 121, 95, 25, 251, 194, 143, 218, 119, 169, 94, 89, 237, 187, 139, 55, 9, 200>>
-         ]
+         "from" => <<252, 55, 141, 170, 149, 43, 167, 241, 99, 196, 161, 22, 40, 245, 90, 77, 245, 35, 179, 239>>,
+         "to" => <<178, 183, 193, 121, 95, 25, 251, 194, 143, 218, 119, 169, 94, 89, 237, 187, 139, 55, 9, 200>>
        }}
   """
   def decode_event(function_signature, data, topics) when is_binary(function_signature) do
@@ -123,6 +119,23 @@ defmodule ABI do
 
   def decode_event(%ABI.FunctionSelector{} = function_selector, data, topics) do
     ABI.Event.decode_event(data, topics, function_selector)
+  end
+
+  @doc """
+  Decodes an event, including indexed and non-indexed data.
+
+  ## Examples
+
+      iex> ABI.event_topic("Transfer(address indexed from, address indexed to, uint256 amount)")
+      ...> |> Base.encode16(case: :lower)
+      "ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"
+  """
+  def event_topic(function_signature) when is_binary(function_signature) do
+    event_topic(ABI.FunctionSelector.decode(function_signature))
+  end
+
+  def event_topic(%ABI.FunctionSelector{} = function_selector) do
+    ABI.Event.event_topic(function_selector)
   end
 
   @doc """
