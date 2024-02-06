@@ -73,6 +73,18 @@ defmodule ABI.TypeEncoder do
       ...> |> Base.encode16(case: :lower)
       "000000000000000000000000000000000000000000000000000000000000001100000000000000000000000000000000000000000000000000000000000000012040000000000000000000000000000000000000000000000000000000000000"
 
+      iex> [{17, true, <<32, 64>>}]
+      ...> |> ABI.TypeEncoder.encode(
+      ...>      %ABI.FunctionSelector{
+      ...>        function: nil,
+      ...>        types: [
+      ...>          {:struct, "Cat", [{:uint, 32}, :bool, {:bytes, 2}], ["age", "cool", "mice"]}
+      ...>        ]
+      ...>      }
+      ...>    )
+      ...> |> Base.encode16(case: :lower)
+      "000000000000000000000000000000000000000000000000000000000000001100000000000000000000000000000000000000000000000000000000000000012040000000000000000000000000000000000000000000000000000000000000"
+
       iex> [[17, 1]]
       ...> |> ABI.TypeEncoder.encode(
       ...>      %ABI.FunctionSelector{
@@ -202,6 +214,8 @@ defmodule ABI.TypeEncoder do
   defp encode_type({:bytes, size}, [data | _]) do
     raise "wrong datatype for bytes#{size}: #{inspect(data)}"
   end
+
+  defp encode_type({:struct, _name, types, _names}, d), do: encode_type({:tuple, types}, d)
 
   defp encode_type({:tuple, types}, [data | rest]) do
     # all head items are 32 bytes in length and there will be exactly

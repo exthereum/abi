@@ -57,6 +57,18 @@ defmodule ABI.TypeDecoder do
       ...>      %ABI.FunctionSelector{
       ...>        function: nil,
       ...>        types: [
+      ...>          {:struct, "Cat", [{:uint, 32}, :bool], ["age", "cool"]}
+      ...>        ]
+      ...>      }
+      ...>    )
+      [{17, true}]
+
+      iex> "00000000000000000000000000000000000000000000000000000000000000110000000000000000000000000000000000000000000000000000000000000001"
+      ...> |> Base.decode16!(case: :lower)
+      ...> |> ABI.TypeDecoder.decode(
+      ...>      %ABI.FunctionSelector{
+      ...>        function: nil,
+      ...>        types: [
       ...>          {:array, {:uint, 32}, 2}
       ...>        ]
       ...>      }
@@ -239,6 +251,8 @@ defmodule ABI.TypeDecoder do
     {tuple |> Tuple.to_list(), rest}
   end
 
+  defp decode_type({:struct, _name, types, _names}, starting_data), do: decode_type({:tuple, types}, starting_data)
+
   defp decode_type({:tuple, types}, starting_data) do
     # First pass, decode static types
     {elements, rest} =
@@ -303,13 +317,13 @@ defmodule ABI.TypeDecoder do
     case padding_direction do
       :left ->
         <<_padding::binary-size(padding_size_in_bytes), value::binary-size(size_in_bytes),
-          rest::binary()>> = data
+          rest::binary>> = data
 
         {value, rest}
 
       :right ->
         <<value::binary-size(size_in_bytes), _padding::binary-size(padding_size_in_bytes),
-          rest::binary()>> = data
+          rest::binary>> = data
 
         {value, rest}
     end
