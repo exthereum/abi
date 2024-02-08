@@ -269,10 +269,10 @@ defmodule ABI.FunctionSelector do
         function_type: :event,
         state_mutability: nil,
         types: [
-          %{name: "z0", type: :address},
-          %{name: "z1", type: :address},
-          %{name: "z2", type: :address},
-          %{name: "z3", type: {:bytes, 32}}
+          %{name: "z0", type: :address, indexed: true},
+          %{name: "z1", type: :address, indexed: true},
+          %{name: "z2", type: :address, indexed: false},
+          %{name: "z3", type: {:bytes, 32}, indexed: false}
         ],
         returns: nil
       }
@@ -302,28 +302,32 @@ defmodule ABI.FunctionSelector do
     }
   end
 
-  defp parse_specification_type(%{"type" => "tuple[]", "name" => name, "components" => components}) do
-    %{name: name, type: {:array, {:tuple, Enum.map(components, &parse_specification_type/1)}}}
+  defp parse_specification_type(record=%{"name" => name, "indexed" => indexed}) do
+    %{name: name, type: parse_specification_type_type(record), indexed: indexed}
   end
 
-  defp parse_specification_type(%{"type" => "tuple[]", "components" => components}) do
-    %{type: {:array, {:tuple, Enum.map(components, &parse_specification_type/1)}}}
+  defp parse_specification_type(record=%{"indexed" => indexed}) do
+    %{type: parse_specification_type_type(record), indexed: indexed}
   end
 
-  defp parse_specification_type(%{"type" => "tuple", "name" => name, "components" => components}) do
-    %{name: name, type: {:tuple, Enum.map(components, &parse_specification_type/1)}}
+  defp parse_specification_type(record=%{"name" => name}) do
+    %{name: name, type: parse_specification_type_type(record)}
   end
 
-  defp parse_specification_type(%{"type" => "tuple", "components" => components}) do
-    %{type: {:tuple, Enum.map(components, &parse_specification_type/1)}}
+  defp parse_specification_type(record) do
+    %{type: parse_specification_type_type(record)}
   end
 
-  defp parse_specification_type(%{"type" => type, "name" => name}) do
-    %{type: decode_type(type), name: name}
+  defp parse_specification_type_type(%{"type" => "tuple[]", "components" => components}) do
+    {:array, {:tuple, Enum.map(components, &parse_specification_type/1)}}
   end
 
-  defp parse_specification_type(%{"type" => type}) do
-    %{type: decode_type(type)}
+  defp parse_specification_type_type(%{"type" => "tuple", "components" => components}) do
+    {:tuple, Enum.map(components, &parse_specification_type/1)}
+  end
+
+  defp parse_specification_type_type(%{"type" => type}) do
+    decode_type(type)
   end
 
   @doc """
