@@ -149,8 +149,8 @@ defmodule ABI do
       iex> File.read!("priv/dog.abi.json")
       ...> |> Jason.decode!
       ...> |> ABI.parse_specification
-      [%ABI.FunctionSelector{function: "bark", returns: [], types: [%{name: "at", type: :address}, %{name: "loudly", type: :bool}]},
-       %ABI.FunctionSelector{function: "rollover", returns: [%{name: "is_a_good_boy", type: :bool}], types: []}]
+      [%ABI.FunctionSelector{function: "bark", function_type: :function, state_mutability: :nonpayable, returns: [], types: [%{name: "at", type: :address}, %{name: "loudly", type: :bool}]},
+       %ABI.FunctionSelector{function: "rollover", function_type: :function, state_mutability: :nonpayable, returns: [%{name: "is_a_good_boy", type: :bool}], types: []}]
 
       iex> [%{
       ...>   "constant" => true,
@@ -161,12 +161,12 @@ defmodule ABI do
       ...>   "name" => "bark",
       ...>   "outputs" => [],
       ...>   "payable" => false,
-      ...>   "stateMutability" => "nonpayable",
+      ...>   "stateMutability" => "pure",
       ...>   "type" => "function"
       ...> }]
       ...> |> ABI.parse_specification
       [
-        %ABI.FunctionSelector{function: "bark", returns: [], types: [
+        %ABI.FunctionSelector{function: "bark", function_type: :function, state_mutability: :pure, returns: [], types: [
           %{type: :address, name: "at"},
           %{type: :bool, name: "loudly"}
         ]}
@@ -181,7 +181,7 @@ defmodule ABI do
       ...>   "type" => "constructor"
       ...> }]
       ...> |> ABI.parse_specification
-      [%ABI.FunctionSelector{function: nil, types: [%{name: "_numProposals", type: {:uint, 8}}], returns: nil}]
+      [%ABI.FunctionSelector{function: nil, function_type: :constructor, state_mutability: :nonpayable, types: [%{name: "_numProposals", type: {:uint, 8}}], returns: nil}]
 
       iex> ABI.decode("(string)", "000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000643132333435363738393031323334353637383930313233343536373839303132333435363738393031323334353637383930313233343536373839303132333435363738393031323334353637383930313233343536373839303132333435363738393000000000000000000000000000000000000000000000000000000000" |> Base.decode16!(case: :lower))
       [String.duplicate("1234567890", 10)]
@@ -192,7 +192,7 @@ defmodule ABI do
       ...>   "type" => "fallback"
       ...> }]
       ...> |> ABI.parse_specification
-      [%ABI.FunctionSelector{function: nil, returns: nil, types: []}]
+      [%ABI.FunctionSelector{function: nil, function_type: :fallback, state_mutability: :nonpayable, returns: nil, types: []}]
   """
   def parse_specification(doc) do
     doc
