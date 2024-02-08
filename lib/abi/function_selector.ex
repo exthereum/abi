@@ -19,7 +19,7 @@ defmodule ABI.FunctionSelector do
   @type argument_type ::
           %{:type => type, optional(:name) => String.t(), optional(:indexed) => boolean()}
 
-  @type function_type :: :function | :constructor | :fallback | :receive
+  @type function_type :: :function | :constructor | :fallback | :receive | :error | :event
 
   @type state_mutability :: :nonpayable | :pure | :view | :payable
 
@@ -262,6 +262,23 @@ defmodule ABI.FunctionSelector do
         ],
         returns: [%{name: "", type: {:array, :bytes}}]
       }
+
+      iex> ABI.FunctionSelector.parse_specification_item(%{"anonymous" => false, "inputs" => [%{"indexed" => true, "internalType" => "address", "name" => "z0", "type" => "address"}, %{"indexed" => true, "internalType" => "address", "name" => "z1", "type" => "address"}, %{"indexed" => false, "internalType" => "address", "name" => "z2", "type" => "address"}, %{"indexed" => false, "internalType" => "bytes32", "name" => "z3", "type" => "bytes32"}], "name" => "z4", "type" => "event"})
+      %ABI.FunctionSelector{
+        function: "z4",
+        function_type: :event,
+        state_mutability: nil,
+        types: [
+          %{name: "z0", type: :address},
+          %{name: "z1", type: :address},
+          %{name: "z2", type: :address},
+          %{name: "z3", type: {:bytes, 32}}
+        ],
+        returns: nil
+      }
+
+      iex> ABI.FunctionSelector.parse_specification_item(%{"inputs" => [], "name" => "Abc", "type" => "error"})
+      %ABI.FunctionSelector{function: "Abc", function_type: :error, state_mutability: nil, types: [], returns: nil}
   """
   def parse_specification_item(%{"type" => function_type} = item) do
     input_types = Enum.map(Map.get(item, "inputs", []), &parse_specification_type/1)
@@ -400,6 +417,8 @@ defmodule ABI.FunctionSelector do
   def get_function_type("constructor"), do: :constructor
   def get_function_type("receive"), do: :receive
   def get_function_type("fallback"), do: :fallback
+  def get_function_type("error"), do: :error
+  def get_function_type("event"), do: :event
 
   @doc false
   @spec get_state_mutability(String.t()) :: state_mutability()
