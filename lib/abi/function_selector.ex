@@ -411,9 +411,11 @@ defmodule ABI.FunctionSelector do
   def is_dynamic?(:string), do: true
   def is_dynamic?({:array, _type}), do: true
   def is_dynamic?({:array, type, len}) when len > 0, do: is_dynamic?(type)
-  def is_dynamic?({:tuple, types}), do: Enum.any?(types, &is_dynamic?/1)
-  def is_dynamic?({:struct, _name, types, _names}), do: Enum.any?(types, &is_dynamic?/1)
-  def is_dynamic?(_), do: false
+  def is_dynamic?({:tuple, types}), do: Enum.any?(types, fn arg_type -> is_dynamic?(arg_type.type) end)
+  def is_dynamic?({:bytes,_}), do: false
+  def is_dynamic?({:uint,_}), do: false
+  def is_dynamic?(:bool), do: false
+  def is_dynamic?(:address), do: false
 
   @doc false
   @spec get_function_type(String.t()) :: function_type()
