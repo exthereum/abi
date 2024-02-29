@@ -1,3 +1,5 @@
+# 1.0.0-alpha6
+* Bugfix for is_dynamic
 # 0.1.15
 * Properly treat all function encodes as tuple encodings
 # 0.1.14
