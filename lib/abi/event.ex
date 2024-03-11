@@ -41,14 +41,16 @@ defmodule ABI.Event do
       end)
       |> Enum.into(%{})
 
-    non_indexed_data =
-      data
-      |> ABI.TypeDecoder.decode_raw(non_indexed_types)
+    [non_indexed_data] = ABI.TypeDecoder.decode_raw(data, [%{type: {:tuple, non_indexed_types}}])
+
+    non_indexed_data_map =
+      non_indexed_data
+      |> Tuple.to_list()
       |> Enum.zip(non_indexed_types)
       |> Enum.map(fn {res, %{name: name}} -> {name, res} end)
       |> Enum.into(%{})
 
-    {function_selector.function, Map.merge(indexed_data, non_indexed_data)}
+    {function_selector.function, Map.merge(indexed_data, non_indexed_data_map)}
   end
 
   @doc ~S"""
