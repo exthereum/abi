@@ -1,3 +1,5 @@
+# 1.0.0-alpha7
+* Bugfix for event decoding with dynamic parameters
 # 1.0.0-alpha6
 * Bugfix for is_dynamic
 # 0.1.15
