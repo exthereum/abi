@@ -349,7 +349,8 @@ defmodule ABI.FunctionSelector do
   end
 
   @doc """
-  Encodes a function call signature.
+  Encodes a function call signature. If `indexed=true`, returns
+  the `"indexed"` keyword after indexed parameters.
 
   ## Example
 
@@ -357,23 +358,36 @@ defmodule ABI.FunctionSelector do
       ...>   function: "bark",
       ...>   types: [
       ...>     %{type: {:uint, 256}},
-      ...>     %{type: :bool},
+      ...>     %{type: :bool, indexed: true},
       ...>     %{type: {:array, :string}},
       ...>     %{type: {:array, :string, 3}},
       ...>     %{type: {:tuple, [%{type: {:uint, 256}}, %{type: :bool}]}}
       ...>   ]
       ...> })
       "bark(uint256,bool,string[],string[3],(uint256,bool))"
+
+      iex> ABI.FunctionSelector.encode(%ABI.FunctionSelector{
+      ...>   function: "bark",
+      ...>   types: [
+      ...>     %{type: {:uint, 256}},
+      ...>     %{type: :bool, indexed: true},
+      ...>     %{type: {:array, :string}},
+      ...>     %{type: {:array, :string, 3}},
+      ...>     %{type: {:tuple, [%{type: {:uint, 256}}, %{type: :bool}]}}
+      ...>   ]
+      ...> }, true)
+      "bark(uint256,bool indexed,string[],string[3],(uint256,bool))"
   """
-  def encode(function_selector) do
-    types = get_types(function_selector) |> Enum.join(",")
+  def encode(function_selector, indexed \\ false) do
+    types = get_types(function_selector, indexed) |> Enum.join(",")
 
     "#{function_selector.function}(#{types})"
   end
 
-  defp get_types(function_selector) do
-    for %{type: type} <- function_selector.types do
-      get_type(type)
+  defp get_types(function_selector, indexed) do
+    for t=%{type: type} <- function_selector.types do
+      postfix = if indexed and Map.get(t, :indexed, false), do: " indexed", else: ""
+      "#{get_type(type)}#{postfix}"
     end
   end
 
