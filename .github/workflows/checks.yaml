@@ -1,0 +1,45 @@
+name: Elixir CI
+
+on:
+  push:
+
+# Sets the ENV `MIX_ENV` to `test` for running tests
+env:
+  MIX_ENV: test
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: "Elixir Lint"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Compile with cache
+        uses: ./.github/workflows/setup-elixir
+
+      # If this complains about redefining modules as a warning,
+      # there can be a probem with the cached build, so switch to giving
+      # a cache key modifier input on the setup elixir action (e.g. key <> "lint" )
+      - name: Compiles without warnings
+        run: mix compile --warnings-as-errors
+
+      - name: Check Formatting
+        run: mix format --check-formatted
+
+  test-and-coverage:
+    permissions: write-all
+    name: "Elixir Tests"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Compile with cache
+        uses: ./.github/workflows/setup-elixir
+
+      - name: Run Elixir Tests
+        run: mix test --formatter JUnitFormatter --formatter ExUnit.CLIFormatter
