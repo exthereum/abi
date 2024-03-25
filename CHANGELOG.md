@@ -1,3 +1,7 @@
+# 1.0.0-alpha8
+* Add Event Signature check to ABI.Event.decode_event
+* Change `decode_event` to return an {:ok, event_name, event_params} tuple.
+* Add ability to add `"indexed"` keyword to ABI canonicals
 # 1.0.0-alpha7
 * Bugfix for event decoding with dynamic parameters
 # 1.0.0-alpha6

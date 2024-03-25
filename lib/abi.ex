@@ -98,43 +98,83 @@ defmodule ABI do
 
       iex> ABI.decode_event(
       ...>   "Transfer(address indexed from, address indexed to, uint256 amount)",
-      ...>   "00000000000000000000000000000000000000000000000000000004a817c800" |> Base.decode16!(case: :lower),
+      ...>   ~h[0x00000000000000000000000000000000000000000000000000000004a817c800],
       ...>   [
-      ...>     "ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef" |> Base.decode16!(case: :lower),
-      ...>     "000000000000000000000000b2b7c1795f19fbc28fda77a95e59edbb8b3709c8" |> Base.decode16!(case: :lower),
-      ...>     "0000000000000000000000007795126b3ae468f44c901287de98594198ce38ea" |> Base.decode16!(case: :lower)
+      ...>     ~h[0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef],
+      ...>     ~h[0x000000000000000000000000b2b7c1795f19fbc28fda77a95e59edbb8b3709c8],
+      ...>     ~h[0x0000000000000000000000007795126b3ae468f44c901287de98594198ce38ea]
       ...>   ]
       ...> )
-      {"Transfer",
-       %{
-         "amount" => 20_000_000_000,
-         "from" => <<252, 55, 141, 170, 149, 43, 167, 241, 99, 196, 161, 22, 40, 245, 90, 77, 245, 35, 179, 239>>,
-         "to" => <<178, 183, 193, 121, 95, 25, 251, 194, 143, 218, 119, 169, 94, 89, 237, 187, 139, 55, 9, 200>>
-       }}
+      {:ok,
+        "Transfer", %{
+          "amount" => 20000000000,
+          "from" => ~h[0xb2b7c1795f19fbc28fda77a95e59edbb8b3709c8],
+          "to" => ~h[0x7795126b3ae468f44c901287de98594198ce38ea]
+      }}
+
+      iex> ABI.decode_event(
+      ...>   "Transfer(address indexed from, address indexed to, uint256 amount)",
+      ...>   ~h[0x00000000000000000000000000000000000000000000000000000004a817c800],
+      ...>   [
+      ...>     ~h[0x000000000000000000000000b2b7c1795f19fbc28fda77a95e59edbb8b3709c8],
+      ...>     ~h[0x0000000000000000000000007795126b3ae468f44c901287de98594198ce38ea]
+      ...>   ],
+      ...>   check_event_signature: false
+      ...> )
+      {:ok,
+        "Transfer", %{
+          "amount" => 20000000000,
+          "from" => ~h[0xb2b7c1795f19fbc28fda77a95e59edbb8b3709c8],
+          "to" => ~h[0x7795126b3ae468f44c901287de98594198ce38ea]
+      }}
+
+      iex> ABI.decode_event(
+      ...>   %ABI.FunctionSelector{
+      ...>     function: "Transfer",
+      ...>     types: [
+      ...>       %{type: :address, name: "from", indexed: true},
+      ...>       %{type: :address, name: "to", indexed: true},
+      ...>       %{type: {:uint, 256}, name: "amount"},
+      ...>     ]
+      ...>   },
+      ...>   ~h[0x00000000000000000000000000000000000000000000000000000004a817c800],
+      ...>   [
+      ...>     ~h[0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef],
+      ...>     ~h[0x000000000000000000000000b2b7c1795f19fbc28fda77a95e59edbb8b3709c8],
+      ...>     ~h[0x0000000000000000000000007795126b3ae468f44c901287de98594198ce38ea]
+      ...>   ]
+      ...> )
+      {:ok,
+        "Transfer", %{
+          "amount" => 20000000000,
+          "from" => ~h[0xb2b7c1795f19fbc28fda77a95e59edbb8b3709c8],
+          "to" => ~h[0x7795126b3ae468f44c901287de98594198ce38ea]
+      }}
   """
-  def decode_event(function_signature, data, topics) when is_binary(function_signature) do
-    decode_event(ABI.FunctionSelector.decode(function_signature), data, topics)
+  def decode_event(function_signature, data, topics, opts \\ [])
+  def decode_event(function_signature, data, topics, opts) when is_binary(function_signature) do
+    decode_event(ABI.FunctionSelector.decode(function_signature), data, topics, opts)
   end
 
-  def decode_event(%ABI.FunctionSelector{} = function_selector, data, topics) do
-    ABI.Event.decode_event(data, topics, function_selector)
+  def decode_event(%ABI.FunctionSelector{} = function_selector, data, topics, opts) do
+    ABI.Event.decode_event(data, topics, function_selector, opts)
   end
 
   @doc """
-  Decodes an event, including indexed and non-indexed data.
+  Returns the signature for an event.
 
   ## Examples
 
-      iex> ABI.event_topic("Transfer(address indexed from, address indexed to, uint256 amount)")
+      iex> ABI.event_signature("Transfer(address indexed from, address indexed to, uint256 amount)")
       ...> |> Base.encode16(case: :lower)
       "ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"
   """
-  def event_topic(function_signature) when is_binary(function_signature) do
-    event_topic(ABI.FunctionSelector.decode(function_signature))
+  def event_signature(function_signature) when is_binary(function_signature) do
+    event_signature(ABI.FunctionSelector.decode(function_signature))
   end
 
-  def event_topic(%ABI.FunctionSelector{} = function_selector) do
-    ABI.Event.event_topic(function_selector)
+  def event_signature(%ABI.FunctionSelector{} = function_selector) do
+    ABI.Event.event_signature(function_selector)
   end
 
   @doc """
