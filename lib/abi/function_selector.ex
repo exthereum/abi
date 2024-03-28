@@ -377,17 +377,54 @@ defmodule ABI.FunctionSelector do
       ...>   ]
       ...> }, true)
       "bark(uint256,bool indexed,string[],string[3],(uint256,bool))"
+
+      iex> ABI.FunctionSelector.encode(%ABI.FunctionSelector{
+      ...>   function: "bark",
+      ...>   types: [
+      ...>     %{type: {:uint, 256}},
+      ...>     %{type: :bool, indexed: true},
+      ...>     %{type: {:array, :string}},
+      ...>     %{type: {:array, :string, 3}},
+      ...>     %{type: {:tuple, [%{type: {:uint, 256}}, %{type: :bool}]}}
+      ...>   ]
+      ...> }, true, true)
+      "bark(uint256 var0,bool indexed var1,string[] var2,string[3] var3,(uint256,bool) var4)"
+
+      iex> ABI.FunctionSelector.encode(%ABI.FunctionSelector{
+      ...>   function: "bark",
+      ...>   types: [
+      ...>     %{type: {:uint, 256}},
+      ...>     %{type: :bool, indexed: true},
+      ...>     %{type: {:array, :string}},
+      ...>     %{type: {:array, :string, 3}},
+      ...>     %{type: {:tuple, [%{type: {:uint, 256}}, %{type: :bool}]}}
+      ...>   ]
+      ...> }, false, true)
+      "bark(uint256 var0,bool var1,string[] var2,string[3] var3,(uint256,bool) var4)"
+
+      iex> ABI.FunctionSelector.encode(%ABI.FunctionSelector{
+      ...>   function: "bark",
+      ...>   types: [
+      ...>     %{type: {:uint, 256}, name: "a"},
+      ...>     %{type: :bool, indexed: true, name: "b"},
+      ...>     %{type: {:array, :string}, name: "c"},
+      ...>     %{type: {:array, :string, 3}, name: "d"},
+      ...>     %{type: {:tuple, [%{type: {:uint, 256}}, %{type: :bool}]}, name: "e"}
+      ...>   ]
+      ...> }, false, true)
+      "bark(uint256 a,bool b,string[] c,string[3] d,(uint256,bool) e)"
   """
-  def encode(function_selector, indexed \\ false) do
-    types = get_types(function_selector, indexed) |> Enum.join(",")
+  def encode(function_selector, indexed \\ false, names \\ false) do
+    types = get_types(function_selector, indexed, names) |> Enum.join(",")
 
     "#{function_selector.function}(#{types})"
   end
 
-  defp get_types(function_selector, indexed) do
-    for t=%{type: type} <- function_selector.types do
-      postfix = if indexed and Map.get(t, :indexed, false), do: " indexed", else: ""
-      "#{get_type(type)}#{postfix}"
+  defp get_types(function_selector, indexed, names) do
+    for {t=%{type: type}, i} <- Enum.with_index(function_selector.types) do
+      indexed_postfix = if indexed and Map.get(t, :indexed, false), do: " indexed", else: ""
+      name_postfix = if names, do: " #{Map.get(t, :name, "var#{i}")}", else: ""
+      "#{get_type(type)}#{indexed_postfix}#{name_postfix}"
     end
   end
 

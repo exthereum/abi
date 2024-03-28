@@ -1,3 +1,5 @@
+# 1.0.0-alpha9
+* Add Names to Event Signatures
 # 1.0.0-alpha8
 * Add Event Signature check to ABI.Event.decode_event
 * Change `decode_event` to return an {:ok, event_name, event_params} tuple.
