@@ -186,13 +186,41 @@ defmodule ABI.Event do
       ...>       %{type: {:uint, 256}, name: "amount"},
       ...>     ]
       ...>   },
+      ...>   names: true
+      ...> )
+      "Transfer(address from,address to,uint256 amount)"
+
+      iex> ABI.Event.canonical(
+      ...>   %ABI.FunctionSelector{
+      ...>     function: "Transfer",
+      ...>     types: [
+      ...>       %{type: :address, name: "from", indexed: true},
+      ...>       %{type: :address, name: "to", indexed: true},
+      ...>       %{type: {:uint, 256}, name: "amount"},
+      ...>     ]
+      ...>   },
       ...>   indexed: true
       ...> )
       "Transfer(address indexed,address indexed,uint256)"
+
+      iex> ABI.Event.canonical(
+      ...>   %ABI.FunctionSelector{
+      ...>     function: "Transfer",
+      ...>     types: [
+      ...>       %{type: :address, name: "from", indexed: true},
+      ...>       %{type: :address, name: "to", indexed: true},
+      ...>       %{type: {:uint, 256}, name: "amount"},
+      ...>     ]
+      ...>   },
+      ...>   indexed: true,
+      ...>   names: true
+      ...> )
+      "Transfer(address indexed from,address indexed to,uint256 amount)"
   """
   def canonical(function_selector, opts \\ []) do
     indexed = Keyword.get(opts, :indexed, false)
+    names = Keyword.get(opts, :names, false)
 
-    ABI.FunctionSelector.encode(function_selector, indexed)
+    ABI.FunctionSelector.encode(function_selector, indexed, names)
   end
 end
