@@ -89,14 +89,16 @@ defmodule ABI.Event do
     {indexed_types, non_indexed_types} =
       Enum.split_with(function_selector.types, fn t -> Map.get(t, :indexed) end)
 
-    indexed_types_full = if check_event_signature do
-      [%{type: {:bytes, 32}, name: "__abi__topic"} | indexed_types]
-    else
-      indexed_types
-    end
+    indexed_types_full =
+      if check_event_signature do
+        [%{type: {:bytes, 32}, name: "__abi__topic"} | indexed_types]
+      else
+        indexed_types
+      end
 
     if Enum.count(indexed_types_full) != Enum.count(topics) do
-      {:error, "Invalid topics length (got=#{Enum.count(topics)}, expected=#{Enum.count(indexed_types_full)}), consider toggling `check_event_signature`"}
+      {:error,
+       "Invalid topics length (got=#{Enum.count(topics)}, expected=#{Enum.count(indexed_types_full)}), consider toggling `check_event_signature`"}
     else
       indexed_data =
         indexed_types_full
@@ -107,7 +109,8 @@ defmodule ABI.Event do
         end)
         |> Enum.into(%{})
 
-      [non_indexed_data] = ABI.TypeDecoder.decode_raw(data, [%{type: {:tuple, non_indexed_types}}])
+      [non_indexed_data] =
+        ABI.TypeDecoder.decode_raw(data, [%{type: {:tuple, non_indexed_types}}])
 
       non_indexed_data_map =
         non_indexed_data
