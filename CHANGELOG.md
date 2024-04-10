@@ -1,3 +1,5 @@
+# 1.0.0-bravo1
+* Fix ABI tuple encoding for nested inlined tuples
 # 1.0.0-alpha9
 * Add Names to Event Signatures
 # 1.0.0-alpha8

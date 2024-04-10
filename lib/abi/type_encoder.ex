@@ -74,6 +74,21 @@ defmodule ABI.TypeEncoder do
       ...> |> Base.encode16(case: :lower)
       "000000000000000000000000000000000000000000000000000000000000000b68656c6c6f20776f726c64000000000000000000000000000000000000000000"
 
+      iex> [{{0x11, 0x22}, "hello world"}]
+      ...> |> ABI.TypeEncoder.encode(
+      ...>      %ABI.FunctionSelector{
+      ...>        function: nil,
+      ...>        types: [
+      ...>          %{type: {:tuple, [
+      ...>            %{type: {:tuple, [%{type: {:uint, 256}},%{type: {:uint, 256}}]}},
+      ...>            %{type: :string},
+      ...>          ]}}
+      ...>        ]
+      ...>      }
+      ...>    )
+      ...> |> Base.encode16(case: :lower)
+      "000000000000000000000000000000000000000000000000000000000000001100000000000000000000000000000000000000000000000000000000000000220000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000000b68656c6c6f20776f726c64000000000000000000000000000000000000000000"
+
       iex> [{"awesome", true}]
       ...> |> ABI.TypeEncoder.encode(
       ...>      %ABI.FunctionSelector{
@@ -277,7 +292,8 @@ defmodule ABI.TypeEncoder do
   defp encode_type({:tuple, types}, [data | rest]) do
     # all head items are 32 bytes in length and there will be exactly
     # `count(types)` of them, so the tail starts at `32 * count(types)`.
-    tail_start = (types |> Enum.count()) * 32
+    # Note: `count(types)` accounts for inlined tuples.
+    tail_start = count(types) * 32
 
     {head, tail, [], _} =
       Enum.reduce(types, {<<>>, <<>>, data |> Tuple.to_list(), tail_start}, fn argument_type,
@@ -353,6 +369,24 @@ defmodule ABI.TypeEncoder do
       :right -> bin <> padding
     end
   end
+
+  # Returns the total number of static types, accounting for inlined tuples
+  defp count(sub_types) do
+    sub_types
+    |> Enum.map(&do_count/1)
+    |> Enum.sum()
+  end
+
+  defp do_count(%{type: t={:tuple, sub_types}}) do
+    if ABI.FunctionSelector.is_dynamic?(t) do
+      1
+    else
+      sub_types
+      |> Enum.map(&do_count/1)
+      |> Enum.sum()
+    end
+  end
+  defp do_count(_), do: 1
 
   @spec maybe_encode_unsigned(binary() | integer()) :: binary()
   defp maybe_encode_unsigned(bin) when is_binary(bin), do: bin
