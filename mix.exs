@@ -36,6 +36,7 @@ defmodule ABI.Mixfile do
       {:ex_doc, "~> 0.31.1", only: :dev, runtime: false},
       {:jason, "~> 1.4"},
       {:ex_sha3, "~> 0.1.4"},
+      {:junit_formatter, "~> 3.1", only: [:test, :integration]}
     ]
   end
 end
