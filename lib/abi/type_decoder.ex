@@ -241,6 +241,11 @@ defmodule ABI.TypeDecoder do
     decode_type({:array, type, element_count}, rest)
   end
 
+  defp decode_type({:array, _type, element_count}, data)
+       when element_count * 32 > byte_size(data) do
+    raise("The input binary data is not long enough to use to decode the array.")
+  end
+
   defp decode_type({:array, _type, 0}, data), do: {[], data}
 
   defp decode_type({:array, type, element_count}, data) do
