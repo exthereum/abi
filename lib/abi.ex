@@ -100,8 +100,8 @@ defmodule ABI do
     decode(ABI.FunctionSelector.decode(function_signature), data)
   end
 
-  def decode(%ABI.FunctionSelector{} = function_selector, data) do
-    [res] = ABI.TypeDecoder.decode_raw(data, [%{type: {:tuple, function_selector.types}}])
+  def decode(%ABI.FunctionSelector{} = function_selector, data, opts \\ []) do
+    [res] = ABI.TypeDecoder.decode_raw(data, [%{type: {:tuple, function_selector.types}}], opts)
     Tuple.to_list(res)
   end
 
