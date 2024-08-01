@@ -296,7 +296,7 @@ defmodule ABI.TypeEncoder do
     tail_start = count(types) * 32
 
     {head, tail, [], _} =
-      Enum.reduce(types, {<<>>, <<>>, data |> Tuple.to_list(), tail_start}, fn argument_type,
+      Enum.reduce(types, {<<>>, <<>>, data_to_list(types, data), tail_start}, fn argument_type,
                                                                                {head, tail, data,
                                                                                 tail_position} ->
         type = argument_type.type
@@ -387,6 +387,23 @@ defmodule ABI.TypeEncoder do
     end
   end
   defp do_count(_), do: 1
+
+  defp data_to_list(_types, data) when is_list(data), do: data
+  defp data_to_list(_types, data) when is_tuple(data), do: Tuple.to_list(data)
+  defp data_to_list(types, data) when is_map(data) do
+    Enum.map(types, fn type ->
+      if type[:name] do
+        atom_name = String.to_atom(Macro.underscore(type[:name]))
+        if data[atom_name] do
+          data[atom_name]
+        else
+          raise "Cannot find key `#{atom_name}` for type `#{inspect(type)}`\n\n\tin data:\n\n\t#{inspect(data)}"
+        end
+      else
+        raise "Cannot decode struct with map when no name given in type `#{inspect(type)}`\n\n\tfor data:\n\n\t#{inspect(data)}"
+      end
+    end)
+  end
 
   @spec maybe_encode_unsigned(binary() | integer()) :: binary()
   defp maybe_encode_unsigned(bin) when is_binary(bin), do: bin
