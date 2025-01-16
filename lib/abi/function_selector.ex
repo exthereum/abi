@@ -12,6 +12,7 @@ defmodule ABI.FunctionSelector do
           | :bytes
           | :string
           | :address
+          | {:int, integer()}
           | {:array, type}
           | {:array, type, non_neg_integer}
           | {:tuple, [argument_type]}

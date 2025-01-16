@@ -195,6 +195,11 @@ defmodule ABI.TypeEncoder do
       ...> )
       ...> |> Base.encode16(case: :lower)
       "19c9d90a00000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000300000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000009000000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000000b0000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000500000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000000e0000000000000000000000000000000000000000000000000000000000000000800000000000000000000000000000000000000000000000000000000000000010600000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000007"
+
+      iex> [-255]
+      ...> |> ABI.TypeEncoder.encode(%ABI.FunctionSelector{function: nil, types: [%{type: {:int, 16}}]})
+      ...> |> Base.encode16(case: :lower)
+      "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff01"
   """
   def encode(data, function_selector) do
     encode_method_id(function_selector) <> do_encode_data(data, function_selector)
@@ -253,6 +258,10 @@ defmodule ABI.TypeEncoder do
   @spec encode_type(ABI.FunctionSelector.type(), [any()]) :: {binary(), [any()]}
   defp encode_type({:uint, size}, [data | rest]) do
     {encode_uint(data, size), rest}
+  end
+
+  defp encode_type({:int, size}, [data | rest]) do
+    {encode_int(data, size), rest}
   end
 
   defp encode_type(:address, data), do: encode_type({:uint, 160}, data)
@@ -342,6 +351,29 @@ defmodule ABI.TypeEncoder do
     bytes |> pad(byte_size(bytes), :right)
   end
 
+  defp encode_int(int, desired_size_bits) when rem(desired_size_bits, 8) == 0 and is_integer(int) do
+    desired_size_bytes = ceil(desired_size_bits / 8)
+
+    sign_byte = if(int < 0, do: <<0xFF>>, else: <<0x00>>)
+
+    significant_bytes =
+      if int >= 0 do
+        maybe_encode_unsigned(abs(int))
+      else
+        # two's complement encoding: 2**(integer_bit_size) - abs(integer)
+        actual_bit_size = :binary.encode_unsigned(-1 * int) |> bit_size()
+        maybe_encode_unsigned(2 ** actual_bit_size + int)
+      end
+
+    if byte_size(significant_bytes) > desired_size_bytes - 1 do
+      raise(
+        "Data overflow encoding int, data `#{int}` cannot fit in #{(desired_size_bytes - 1) * 8} bits"
+      )
+    end
+
+    pad(significant_bytes, desired_size_bytes, :left, fill_byte: sign_byte)
+  end
+
   # Note, we'll accept a binary or an integer here, so long as the
   # binary is not longer than our allowed data size
   defp encode_uint(data, size_in_bits) when rem(size_in_bits, 8) == 0 do
@@ -357,12 +389,18 @@ defmodule ABI.TypeEncoder do
     bin |> pad(size_in_bytes, :left)
   end
 
-  defp pad(bin, size_in_bytes, direction) do
+  defp pad(bin, size_in_bytes, direction, opts \\ []) do
+    fill_byte = Keyword.get(opts, :fill_byte, <<0x00>>)
+
     # TODO: Create `left_pad` repo, err, add to `ABI.Math`
     total_size = size_in_bytes + ABI.Math.mod(32 - ABI.Math.mod(size_in_bytes, 32), 32)
 
-    padding_size_bits = (total_size - byte_size(bin)) * 8
-    padding = <<0::size(padding_size_bits)>>
+    padding_size_bytes = total_size - byte_size(bin)
+
+    padding =
+      Stream.duplicate(fill_byte, padding_size_bytes)
+      |> Enum.to_list()
+      |> :binary.list_to_bin()
 
     case direction do
       :left -> padding <> bin
