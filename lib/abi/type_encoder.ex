@@ -432,10 +432,16 @@ defmodule ABI.TypeEncoder do
     Enum.map(types, fn type ->
       if type[:name] do
         atom_name = String.to_atom(Macro.underscore(type[:name]))
-        if data[atom_name] do
-          data[atom_name]
-        else
-          raise "Cannot find key `#{atom_name}` for type `#{inspect(type)}`\n\n\tin data:\n\n\t#{inspect(data)}"
+
+        cond do
+          Map.has_key?(data, type[:name]) ->
+            Map.fetch!(data, type[:name])
+
+          Map.has_key?(data, atom_name) ->
+            Map.fetch!(data, atom_name)
+
+          true ->
+            raise "Cannot find key `:#{atom_name}` or `\"#{type[:name]}\"` for type `#{inspect(type)}`\n\n\tin data:\n\n\t#{inspect(data)}"
         end
       else
         raise "Cannot decode struct with map when no name given in type `#{inspect(type)}`\n\n\tfor data:\n\n\t#{inspect(data)}"
